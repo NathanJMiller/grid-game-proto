@@ -1,7 +1,7 @@
 package gridgameprototype.nodegraph;
 
 import gridgameprototype.nodegraph.node.Node;
-import gridgameprototype.nodegraph.node.NodeType;
+import gridgameprototype.nodegraph.node.nodetypes.NodeType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,5 +24,13 @@ public class NodeGraph {
 
     public Node<? extends NodeType> getNode(UUID id) {
         return nodeDictionary.get(id);
+    }
+
+    public HashMap<UUID, Node<? extends NodeType>> getNodes() {
+        return nodeDictionary;
+    }
+
+    public HashMap<UUID, Node<? extends NodeType>> getRootNodes() {
+        return rootNodes;
     }
 }

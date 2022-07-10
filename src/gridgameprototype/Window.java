@@ -1,5 +1,9 @@
 package gridgameprototype;
 
+import gridgameprototype.nodegraph.NodeGraph;
+import gridgameprototype.nodegraph.node.Node;
+import gridgameprototype.nodegraph.node.RoomNode;
+import gridgameprototype.nodegraph.node.nodetypes.RoomNodeType;
 import gridgameprototype.render.GameField;
 import gridgameprototype.time.GameClock;
 
@@ -35,11 +39,6 @@ public class Window {
         }
 
         boolean finalDebug = debug;
-        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                createStartWindow(finalDebug);
-            }
-        });
+        javax.swing.SwingUtilities.invokeLater(() -> createStartWindow(finalDebug));
     }
 }

@@ -2,6 +2,10 @@ package gridgameprototype.render;
 
 import gridgameprototype.grid.procedural.GenerationConfiguration;
 import gridgameprototype.grid.procedural.VaultGrid;
+import gridgameprototype.nodegraph.NodeGraph;
+import gridgameprototype.nodegraph.node.Node;
+import gridgameprototype.nodegraph.node.RoomNode;
+import gridgameprototype.nodegraph.node.nodetypes.RoomNodeType;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -10,7 +14,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.UUID;
 
 public class GameField extends JPanel {
 
@@ -22,6 +29,7 @@ public class GameField extends JPanel {
 
     private Image wall;
     private final String levelString;
+    private final NodeGraph ngraph;
 
     public GameField(boolean debug) {
         super();
@@ -33,6 +41,11 @@ public class GameField extends JPanel {
         VaultGrid testLevel = new VaultGrid(16, 9, new GenerationConfiguration());
         levelString = testLevel.printToString();
         System.out.println(levelString);
+        ngraph = new NodeGraph();
+        RoomNode rootRoom = new RoomNode(ngraph, RoomNodeType.EMPTY, null);
+        RoomNode childRoom1 = new RoomNode(ngraph, RoomNodeType.EMPTY, new java.util.UUID[]{rootRoom.uuid});
+        RoomNode childRoom2 = new RoomNode(ngraph, RoomNodeType.EMPTY, new java.util.UUID[]{rootRoom.uuid});
+        RoomNode childChildRoom = new RoomNode(ngraph, RoomNodeType.EMPTY, new java.util.UUID[]{childRoom1.uuid, childRoom2.uuid});
     }
 
     @Override
@@ -71,6 +84,7 @@ public class GameField extends JPanel {
             g.drawString(line, 50, y);
             y += 12;
         }
+        paintNodeGraph(g, ngraph);
     }
     private void paintGridLines(Graphics g) {
         g.setColor(Color.BLUE);
@@ -101,6 +115,51 @@ public class GameField extends JPanel {
         g.setColor(Color.GREEN);
         g.drawLine(0, y, getWidth(), y);
         g.drawLine(x, 0, x, getHeight());
+    }
+    private void paintNodeGraph(Graphics g, NodeGraph nodeGraph) {
+        g.setColor(Color.RED);
+        int pointer_x = 300;
+        int pointer_y = 100;
+        HashMap<UUID, Dimension> drawnNodes = new HashMap<>();
+        nodeGraph.getRootNodes().forEach((id, node)->{
+            paintNodeGraphNode(g, id, nodeGraph, drawnNodes, pointer_x, pointer_y);
+        });
+    }
+    private void paintNodeGraphNode(Graphics g, UUID id, NodeGraph graph, HashMap<UUID, Dimension> drawnNodes, int pointer_x, int pointer_y) {
+        Node<?> node = graph.getNode(id);
+        double layerDistance = 80;
+        ArrayList<UUID> undrawnChildren = new ArrayList<>();
+        node.childNodes.forEach((childId)->{
+            if(!drawnNodes.containsKey(childId)) undrawnChildren.add(childId);
+        });
+        int childCount = undrawnChildren.size();
+        double childSeparatingAngle = childCount > 1 ? 90d/(childCount - 1) : 0;
+
+        node.childNodes.forEach((childId)->{
+            ArrayList<UUID> drawnSiblings = new ArrayList<>();
+            drawnNodes.forEach((drawnId, drawnPos)->{
+                if(node.childNodes.contains(drawnId)) {
+                    drawnSiblings.add(drawnId);
+                }
+            });
+            double x_offset_angle = childSeparatingAngle == 0 ? 45 : Math.toRadians(childSeparatingAngle*drawnSiblings.size());
+            double y_offset_angle = childSeparatingAngle == 0 ? 45 : Math.toRadians(90-childSeparatingAngle*drawnSiblings.size());
+            int y_offset = (int)(Math.sin(y_offset_angle) * layerDistance);
+            int x_offset = (int)(Math.sin(x_offset_angle) * layerDistance);
+
+            if(!drawnNodes.containsKey(childId)) {
+                paintNodeGraphNode(g, childId, graph, drawnNodes, pointer_x + x_offset, pointer_y + y_offset);
+                g.drawLine(pointer_x, pointer_y, pointer_x + x_offset, pointer_y + y_offset);
+            } else {
+                int end_x = drawnNodes.get(childId).width;
+                int end_y = drawnNodes.get(childId).height;
+                g.drawLine(pointer_x, pointer_y, end_x, end_y);
+            }
+        });
+        drawnNodes.computeIfAbsent(id, (param)->{
+            g.drawString(id.toString().substring(0,8), pointer_x, pointer_y);
+            return new Dimension(pointer_x, pointer_y);
+        });
     }
 
     private long getTimeSinceLastFrame() {
